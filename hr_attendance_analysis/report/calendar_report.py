@@ -24,9 +24,10 @@ from datetime import datetime
 from openerp.report import report_sxw
 from openerp.tools.translate import _
 from openerp.tools import DEFAULT_SERVER_DATE_FORMAT
+from openerp.osv import osv
 
 
-class Parser(report_sxw.rml_parse):
+class CalendarReport(report_sxw.rml_parse):
 
     def _get_day_of_week(self, day):
         WEEKDAYS = {
@@ -83,7 +84,7 @@ class Parser(report_sxw.rml_parse):
         return form['max_number_of_attendances_per_day']
 
     def __init__(self, cr, uid, name, context):
-        super(Parser, self).__init__(cr, uid, name, context)
+        super(CalendarReport, self).__init__(cr, uid, name, context)
         self.localcontext.update({
             'time': time,
             'days_by_employee': self._get_days_by_employee,
@@ -93,7 +94,9 @@ class Parser(report_sxw.rml_parse):
             'month_name': self._get_month_name,
         })
 
-report_sxw.report_sxw('report.attendance_analysis.calendar_report',
-                      'attendance_analysis.calendar_report',
-                      'attendance_analysis/report/calendar_report.mako',
-                      parser=Parser)
+
+class AbstractCalendarReport(osv.AbstractModel):
+    _name = 'attendance_analysis.calendar_report'
+    _inherit = 'report.abstract_report'
+    _template = 'hr_attendance_analysis.calendar_report'
+    _wrapped_report_class = CalendarReport
