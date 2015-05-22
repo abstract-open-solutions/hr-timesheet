@@ -72,7 +72,8 @@ body, table, td, span, div {
             <field eval="20" name="margin_top"/>
             <field name="name">Attendances Landscape Header</field>
         </record>
-        <record id="attendance_analysis_report_id" model="ir.actions.report.xml">
+
+<!--         <record id="attendance_analysis_report_id" model="ir.actions.report.xml">
             <field name="name">Attendances Analysis</field>
             <field name="type">ir.actions.report.xml</field>
             <field name="model">hr.employee</field>
@@ -80,7 +81,17 @@ body, table, td, span, div {
             <field name="report_rml">hr_attendance_analysis/report/calendar_report.mako</field>
             <field name="report_type">webkit</field>
             <field name="webkit_header" ref="attendances_landscape_header"/>
-        </record>
+        </record> -->
+
+        <report
+            id="attendance_analysis_calendar_report"
+            model="hr.employee"
+            string="Attendances Analysis"
+            report_type="qweb-pdf"
+            name="attendance_analysis.calendar_report"
+            file="attendance_analysis.calendar_report"
+        />
+
     </data>
 </openerp>
 
