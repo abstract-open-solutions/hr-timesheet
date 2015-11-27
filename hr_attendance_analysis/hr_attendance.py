@@ -265,143 +265,142 @@ class HrAttendance(orm.Model):
                 cr, uid, attendance.employee_id.id, date=str_now[:10],
                 context=context)
             if reference_calendar and next_attendance_ids:
-                if reference_calendar:
-                    # TODO applicare prima arrotondamento o tolleranza?
-                    if reference_calendar.attendance_rounding:
-                        float_attendance_rounding = float(
-                            reference_calendar.attendance_rounding)
-                        rounded_start_hour = self._ceil_rounding(
-                            float_attendance_rounding, attendance_start)
-                        rounded_stop_hour = self._floor_rounding(
-                            float_attendance_rounding, attendance_stop)
-                        # if shift is approximately one hour
-                        if abs(1 - rounded_start_hour) < 0.01:
-                            attendance_start = datetime(
-                                attendance_start.year,
-                                attendance_start.month,
-                                attendance_start.day,
-                                attendance_start.hour + 1)
-                        else:
-                            attendance_start = datetime(
-                                attendance_start.year, attendance_start.month,
-                                attendance_start.day, attendance_start.hour,
-                                int(round(rounded_start_hour * 60.0)))
-                        attendance_stop = datetime(
-                            attendance_stop.year, attendance_stop.month,
-                            attendance_stop.day, attendance_stop.hour,
-                            int(round(rounded_stop_hour * 60.0)))
-                        # again
-                        duration_delta = attendance_stop - attendance_start
-                        duration = self.total_seconds(
-                            duration_delta) / 3600.0
-                        duration = round(duration / precision) * precision
-                        res[attendance.id]['duration'] = duration
-                    res[attendance.id]['inside_calendar_duration'] = 0.0
-                    res[attendance.id]['outside_calendar_duration'] = 0.0
-                    calendar_id = reference_calendar.id
-                    intervals_within = 0
-                    # split attendance in intervals = precision
-                    # 2012.10.16 LF FIX : no recursion in split attendance
-                    splitted_attendances = (
-                        self.split_interval_time_by_precision(
-                            attendance_start, duration, precision))
-                    counter = 0
-                    for atomic_attendance in splitted_attendances:
-                        counter += 1
-                        centered_attendance = (
-                            self.mid_time_interval(
-                                atomic_attendance[0],
-                                delta=atomic_attendance[1],
-                            )
+                # TODO applicare prima arrotondamento o tolleranza?
+                if reference_calendar.attendance_rounding:
+                    float_attendance_rounding = float(
+                        reference_calendar.attendance_rounding)
+                    rounded_start_hour = self._ceil_rounding(
+                        float_attendance_rounding, attendance_start)
+                    rounded_stop_hour = self._floor_rounding(
+                        float_attendance_rounding, attendance_stop)
+                    # if shift is approximately one hour
+                    if abs(1 - rounded_start_hour) < 0.01:
+                        attendance_start = datetime(
+                            attendance_start.year,
+                            attendance_start.month,
+                            attendance_start.day,
+                            attendance_start.hour + 1)
+                    else:
+                        attendance_start = datetime(
+                            attendance_start.year, attendance_start.month,
+                            attendance_start.day, attendance_start.hour,
+                            int(round(rounded_start_hour * 60.0)))
+                    attendance_stop = datetime(
+                        attendance_stop.year, attendance_stop.month,
+                        attendance_stop.day, attendance_stop.hour,
+                        int(round(rounded_stop_hour * 60.0)))
+                    # again
+                    duration_delta = attendance_stop - attendance_start
+                    duration = self.total_seconds(
+                        duration_delta) / 3600.0
+                    duration = round(duration / precision) * precision
+                    res[attendance.id]['duration'] = duration
+                res[attendance.id]['inside_calendar_duration'] = 0.0
+                res[attendance.id]['outside_calendar_duration'] = 0.0
+                calendar_id = reference_calendar.id
+                intervals_within = 0
+                # split attendance in intervals = precision
+                # 2012.10.16 LF FIX : no recursion in split attendance
+                splitted_attendances = (
+                    self.split_interval_time_by_precision(
+                        attendance_start, duration, precision))
+                counter = 0
+                for atomic_attendance in splitted_attendances:
+                    counter += 1
+                    centered_attendance = (
+                        self.mid_time_interval(
+                            atomic_attendance[0],
+                            delta=atomic_attendance[1],
                         )
-                        # check if centered_attendance is within a working
-                        # schedule
-                        # 2012.10.16 LF FIX : weekday must be single character
-                        # not int
-                        weekday_char = unicode(
-                            unichr(centered_attendance.weekday() + 48))
-                        matched_schedule_ids = self.matched_schedule(
-                            cr, uid,
-                            centered_attendance,
-                            weekday_char,
-                            calendar_id,
-                            context=context
-                        )
-                        if len(matched_schedule_ids) > 1:
-                            raise orm.except_orm(
-                                _('Error'),
-                                _('Wrongly configured working schedule with '
-                                  'id %s') % unicode(calendar_id))
-                        if matched_schedule_ids:
-                            intervals_within += 1
-                            # sign in tolerance
-                            if intervals_within == 1:
-                                att = attendance_pool.browse(
-                                    cr, uid, matched_schedule_ids[0],
-                                    context=context)
-                                att_start = self.datetime_to_hour(
-                                    attendance_start)
-                                if (att.hour_from and
-                                        (att_start >= att_start -
-                                         att.hour_from - att.tolerance_to)
-                                        < 0.01):
-                                    # handling float roundings (<=)
-                                    additional_intervals = round(
-                                        (att_start - att.hour_from) /
-                                        precision)
-                                    intervals_within += additional_intervals
-                                    res[attendance.id]['duration'] = \
-                                        self.time_sum(
-                                            res[attendance.id]['duration'],
-                                            additional_intervals * precision)
-                            # sign out tolerance
-                            if len(splitted_attendances) == counter:
-                                att = attendance_pool.browse(
-                                    cr, uid, matched_schedule_ids[0],
-                                    context=context)
-                                att_stop = self.datetime_to_hour(
-                                    attendance_stop)
-                                if (att_stop <= att.hour_to and
-                                        (att_stop -
-                                         att.hour_to + att.tolerance_from) >
-                                        -0.01):
-                                    # handling float roundings (>=)
-                                    additional_intervals = round(
-                                        (att.hour_to - att_stop) /
-                                        precision)
-                                    intervals_within += additional_intervals
-                                    res[attendance.id]['duration'] = (
-                                        self.time_sum(
-                                            res[attendance.id]['duration'],
-                                            additional_intervals * precision)
-                                    )
-                    res[attendance.id][
-                        'inside_calendar_duration'
-                        ] = intervals_within * precision
-                    # make difference using time in order to avoid
-                    # rounding errors
-                    # inside_calendar_duration can't be > duration
-                    res[attendance.id][
-                        'outside_calendar_duration'
-                        ] = self.time_difference(
-                        res[attendance.id]['inside_calendar_duration'],
-                        res[attendance.id]['duration'],
-                        help_message='Attendance ID %s' % attendance.id)
+                    )
+                    # check if centered_attendance is within a working
+                    # schedule
+                    # 2012.10.16 LF FIX : weekday must be single character
+                    # not int
+                    weekday_char = unicode(
+                        unichr(centered_attendance.weekday() + 48))
+                    matched_schedule_ids = self.matched_schedule(
+                        cr, uid,
+                        centered_attendance,
+                        weekday_char,
+                        calendar_id,
+                        context=context
+                    )
+                    if len(matched_schedule_ids) > 1:
+                        raise orm.except_orm(
+                            _('Error'),
+                            _('Wrongly configured working schedule with '
+                              'id %s') % unicode(calendar_id))
+                    if matched_schedule_ids:
+                        intervals_within += 1
+                        # sign in tolerance
+                        if intervals_within == 1:
+                            att = attendance_pool.browse(
+                                cr, uid, matched_schedule_ids[0],
+                                context=context)
+                            att_start = self.datetime_to_hour(
+                                attendance_start)
+                            if (att.hour_from and
+                                    (att_start >= att_start -
+                                     att.hour_from - att.tolerance_to)
+                                    < 0.01):
+                                # handling float roundings (<=)
+                                additional_intervals = round(
+                                    (att_start - att.hour_from) /
+                                    precision)
+                                intervals_within += additional_intervals
+                                res[attendance.id]['duration'] = \
+                                    self.time_sum(
+                                        res[attendance.id]['duration'],
+                                        additional_intervals * precision)
+                        # sign out tolerance
+                        if len(splitted_attendances) == counter:
+                            att = attendance_pool.browse(
+                                cr, uid, matched_schedule_ids[0],
+                                context=context)
+                            att_stop = self.datetime_to_hour(
+                                attendance_stop)
+                            if (att_stop <= att.hour_to and
+                                    (att_stop -
+                                     att.hour_to + att.tolerance_from) >
+                                    -0.01):
+                                # handling float roundings (>=)
+                                additional_intervals = round(
+                                    (att.hour_to - att_stop) /
+                                    precision)
+                                intervals_within += additional_intervals
+                                res[attendance.id]['duration'] = (
+                                    self.time_sum(
+                                        res[attendance.id]['duration'],
+                                        additional_intervals * precision)
+                                )
+                res[attendance.id][
+                    'inside_calendar_duration'
+                    ] = intervals_within * precision
+                # make difference using time in order to avoid
+                # rounding errors
+                # inside_calendar_duration can't be > duration
+                res[attendance.id][
+                    'outside_calendar_duration'
+                    ] = self.time_difference(
+                    res[attendance.id]['inside_calendar_duration'],
+                    res[attendance.id]['duration'],
+                    help_message='Attendance ID %s' % attendance.id)
 
-                    if reference_calendar.overtime_rounding:
-                        if res[attendance.id]['outside_calendar_duration']:
-                            overtime = res[attendance.id][
-                                'outside_calendar_duration']
-                            cal = reference_calendar
-                            if cal.overtime_rounding_tolerance:
-                                overtime = self.time_sum(
-                                    overtime, cal.overtime_rounding_tolerance)
-                            float_overtime_rounding = float(
-                                reference_calendar.overtime_rounding)
-                            res[attendance.id]['outside_calendar_duration'] = \
-                                math.floor(overtime *
-                                           float_overtime_rounding) / \
-                                float_overtime_rounding
+                if reference_calendar.overtime_rounding:
+                    if res[attendance.id]['outside_calendar_duration']:
+                        overtime = res[attendance.id][
+                            'outside_calendar_duration']
+                        cal = reference_calendar
+                        if cal.overtime_rounding_tolerance:
+                            overtime = self.time_sum(
+                                overtime, cal.overtime_rounding_tolerance)
+                        float_overtime_rounding = float(
+                            reference_calendar.overtime_rounding)
+                        res[attendance.id]['outside_calendar_duration'] = \
+                            math.floor(overtime *
+                                       float_overtime_rounding) / \
+                            float_overtime_rounding
         return res
 
     def _get_by_contracts(self, cr, uid, ids, context=None):
