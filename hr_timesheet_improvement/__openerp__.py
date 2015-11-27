@@ -1,7 +1,8 @@
-# -*- encoding: utf-8 -*-
+# -*- coding: utf-8 -*-
 ##############################################################################
 #
-#    Author: Nicolas Bessi
+#    Authors: Yannick Vaucher (Camptocamp)
+#             Vincent Renaville (Camptocamp)
 #    Copyright 2013 Camptocamp SA
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -18,19 +19,17 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-{'name': 'Task in time sheet',
- 'version': '8.0.0.3.0',
+{'name': 'Timesheet improvements',
+ 'version': '8.0.0.1.0',
  'author': "Camptocamp,Odoo Community Association (OCA)",
- 'maintainer': 'Camptocamp - Acsone SA/NV',
+ 'maintainer': 'Camptocamp',
  'category': 'Human Resources',
- 'depends': ['timesheet_task', 'hr_timesheet_sheet'],
- 'description': """Replace project.task.work items linked to task
-                   with hr.analytic.timesheet""",
+ 'depends': ['hr_timesheet_sheet'],
  'website': 'http://www.camptocamp.com',
- 'data': ['hr_timesheet_sheet_view.xml',
-          'hr_analytic_timesheet_view.xml',
-          'hr_timesheet_task.xml'],
- 'qweb': ['static/src/xml/timesheet.xml'],
+ 'data': ['hr_timesheet_view.xml'],
+ 'js': [],
+ 'css': [],
+ 'qweb': [],
  'demo': [],
  'test': [],
  'installable': True,
@@ -39,5 +38,3 @@
  'license': 'AGPL-3',
  'application': True,
  }
-
-# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
