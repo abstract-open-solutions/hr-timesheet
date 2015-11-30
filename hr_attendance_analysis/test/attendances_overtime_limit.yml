@@ -1,0 +1,61 @@
+-
+  Change the contract of the Employee to ensure the test will happen during the contract
+-
+ !python {model: hr.contract}: |
+   import time
+   self.write(cr, uid, [ref('al_contract')], {'date_start': time.strftime('%Y-%m-01')}, context=context)
+-
+  First of all, Employee Sign's In.
+-
+  !record {model: hr.attendance, id: hr_attendance_0}:
+    employee_id: hr.employee_fp
+    name: !eval time.strftime('%Y-%m-11 07:00:00')
+    action: 'sign_in'
+-
+  Employee Sign's Out.
+-
+  !record {model: hr.attendance, id: hr_attendance_1}:
+    employee_id: hr.employee_fp
+    name: !eval time.strftime('%Y-%m-11 12:15:00')
+    action: 'sign_out'
+-
+  I check the attendance data. Overtime working time limit is DISABLED so we must get 5.25 duration.
+-
+   !python {model: hr.attendance}: |
+     import time
+     att_0 = self.browse(cr, uid, ref('hr_attendance_0'), context=context)
+     assert att_0.duration == 5.25, "Attendance duration must be 4:15, but it's %s" % att_0.duration
+     end_datetime = time.strftime('%Y-%m-11 12:15:00')
+     assert att_0.end_datetime == end_datetime, "Attendance end must be 11:50:00, but it's %s" % att_0.end_datetime
+     assert att_0.outside_calendar_duration == 0.25, "Overtime must be 0:15, but it's %s" % att_0.outside_calendar_duration
+     assert att_0.inside_calendar_duration == 4, "Inside calendar be 4, but it's %s" % att_0.inside_calendar_duration
+-
+ Then we enable working hours limit
+-
+ !python {model: resource.calendar}: |
+   self.write(cr, uid, [ref('resource.timesheet_group1')], {'limit_overtime_work':True}, context=context)
+-
+  And once again, Employee Sign's In.
+-
+  !record {model: hr.attendance, id: hr_attendance_2}:
+    employee_id: hr.employee_fp
+    name: !eval time.strftime('%Y-%m-12 07:00:00')
+    action: 'sign_in'
+-
+  Employee Sign's Out.
+-
+  !record {model: hr.attendance, id: hr_attendance_3}:
+    employee_id: hr.employee_fp
+    name: !eval time.strftime('%Y-%m-12 12:15:00')
+    action: 'sign_out'
+-
+  I check the attendance data. Overtime working time limit is ENABLED so we must get 4.25 duration.
+-
+   !python {model: hr.attendance}: |
+     import time
+     att_2 = self.browse(cr, uid, ref('hr_attendance_2'), context=context)
+     assert att_2.duration == 4.25, "Attendance duration must be 4:15, but it's %s" % att_2.duration
+     end_datetime = time.strftime('%Y-%m-11 12:15:00')
+     assert att_2.end_datetime == end_datetime, "Attendance end must be 11:50:00, but it's %s" % att_2.end_datetime
+     assert att_2.outside_calendar_duration == 0.25, "Overtime must be 0:15, but it's %s" % att_2.outside_calendar_duration
+     assert att_2.inside_calendar_duration == 4, "Inside calendar be 4, but it's %s" % att_2.inside_calendar_durati

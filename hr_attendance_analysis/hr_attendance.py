@@ -143,11 +143,17 @@ class HrAttendance(orm.Model):
     def matched_schedule(
             self, cr, uid,
             datetime_, weekday_char, calendar_id,
-            context=None
+            overtime=False,
+            context=None,
     ):
         calendar_attendance_pool = self.pool.get(
             'resource.calendar.attendance')
         datetime_hour = self.datetime_to_hour(datetime_)
+        hour_from_field = 'hour_from'
+        hour_to_field = 'hour_to'
+        if overtime:
+            hour_from_field = 'overtime_hour_from'
+            hour_to_field = 'overtime_hour_to'
         matched_schedule_ids = calendar_attendance_pool.search(
             cr,
             uid,
@@ -160,8 +166,8 @@ class HrAttendance(orm.Model):
                 ('dayofweek', '=', False),
                 ('dayofweek', '=', weekday_char),
                 ('calendar_id', '=', calendar_id),
-                ('hour_to', '>=', datetime_hour),
-                ('hour_from', '<=', datetime_hour),
+                (hour_to_field, '>=', datetime_hour),
+                (hour_from_field, '<=', datetime_hour),
             ],
             context=context
         )
@@ -212,6 +218,13 @@ class HrAttendance(orm.Model):
                    + datetime_.second / 3600.0)
         return math.floor(minutes * rounding) / rounding
 
+    def get_limited_start_and_stop(
+            self, cr, uid, attendance, attendance_start, attendance_stop,
+            calendar, context=None):
+        print 'SHOULD CALCULATE MEEEEEEEEEEEEEEE'
+        print attendance_start, attendance_stop
+        return attendance_start, attendance_stop
+
     def _get_attendance_duration(self, cr, uid, ids, field_name, arg,
                                  context=None):
         res = {}
@@ -225,6 +238,9 @@ class HrAttendance(orm.Model):
         for attendance_id in ids:
             duration = 0.0
             attendance = self.browse(cr, uid, attendance_id, context=context)
+            reference_calendar = self.get_reference_calendar(
+                cr, uid, attendance.employee_id.id, date=str_now[:10],
+                context=context)
             res[attendance.id] = {}
             # 2012.10.16 LF FIX : Attendance in context timezone
             attendance_start = datetime.strptime(
@@ -253,6 +269,15 @@ class HrAttendance(orm.Model):
                     next_attendance_date,
                     DEFAULT_SERVER_DATETIME_FORMAT).replace(
                     tzinfo=pytz.utc).astimezone(active_tz)
+                if reference_calendar.limit_overtime_work:
+                    # calculate new start and stop based on overtime limits
+                    # and override orginal values
+                    attendance_start, attendance_stop = \
+                        self.get_limited_start_and_stop(
+                            cr, uid, attendance,
+                            attendance_start, attendance_stop,
+                            reference_calendar,
+                            context=context)
                 duration_delta = attendance_stop - attendance_start
                 duration = self.total_seconds(duration_delta) / 3600.0
                 duration = round(duration / precision) * precision
@@ -261,9 +286,7 @@ class HrAttendance(orm.Model):
             # If calendar is not specified: working days = 24/7
             res[attendance.id]['inside_calendar_duration'] = duration
             res[attendance.id]['outside_calendar_duration'] = 0.0
-            reference_calendar = self.get_reference_calendar(
-                cr, uid, attendance.employee_id.id, date=str_now[:10],
-                context=context)
+
             if reference_calendar and next_attendance_ids:
                 # TODO applicare prima arrotondamento o tolleranza?
                 if reference_calendar.attendance_rounding:

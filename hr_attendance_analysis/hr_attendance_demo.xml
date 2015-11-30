@@ -2,12 +2,33 @@
 <openerp>
     <data noupdate="1">
 
-      <record id="al_contract" model="hr.contract">
-          <field name="name">Fabien contract</field>
-          <field name="wage">1000</field>
-          <field name="employee_id" ref="hr.employee_fp"></field>
-          <field name="working_hours" ref="resource.timesheet_group1"></field>
-      </record>
+        <record id="al_contract" model="hr.contract">
+            <field name="name">Fabien contract</field>
+            <field name="wage">1000</field>
+            <field name="employee_id" ref="hr.employee_fp"></field>
+            <field name="working_hours" ref="resource.timesheet_group1"></field>
+        </record>
+
+        <record model="resource.calendar.attendance" id="resource.calendar_attendance_mon2">
+            <field name="overtime_hour_from">18</field>
+            <field name="overtime_hour_to">20</field>
+        </record>
+        <record model="resource.calendar.attendance" id="resource.calendar_attendance_tue2">
+            <field name="overtime_hour_from">18</field>
+            <field name="overtime_hour_to">20</field>
+        </record>
+        <record model="resource.calendar.attendance" id="resource.calendar_attendance_wed2">
+            <field name="overtime_hour_from">18</field>
+            <field name="overtime_hour_to">20</field>
+        </record>
+        <record model="resource.calendar.attendance" id="resource.calendar_attendance_thu2">
+            <field name="overtime_hour_from">18</field>
+            <field name="overtime_hour_to">20</field>
+        </record>
+        <record model="resource.calendar.attendance" id="resource.calendar_attendance_fri2">
+            <field name="overtime_hour_from">18</field>
+            <field name="overtime_hour_to">20</field>
+        </record>
 
     </data>
 </openerp>

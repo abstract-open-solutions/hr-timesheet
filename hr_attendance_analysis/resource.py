@@ -33,6 +33,12 @@ class ResourceCalendarAttendance(orm.Model):
             'Tolerance to', size=8,
             help='Sign in done in the interval "Work from + Tolerance to" '
                  'will be considered done at "Work from"'),
+        'overtime_hour_from': fields.float(
+            'Overtime work from',
+            help='Limit overtime working time start.'),
+        'overtime_hour_to': fields.float(
+            'Overtime work to',
+            help='Limit overtime working time stop.'),
     }
 
 
@@ -98,6 +104,10 @@ class ResourceCalendar(orm.Model):
         'overtime_type_ids': fields.one2many(
             'resource.calendar.overtime.type',
             'calendar_id', 'Overtime types'),
+        'limit_overtime_work': fields.boolean(
+            'Limit overtime working hours',
+            help="If this option is active, duration for attendance "
+            "will discard hours outside defined overtime hours range."),
     }
 
 

@@ -46,6 +46,7 @@
     ],
     "test": [
         'test/attendances.yml',
+        'test/attendances_overtime_limit.yml',
     ],
     "installable": True
 }
